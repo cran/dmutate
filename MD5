@@ -1,0 +1,10 @@
+00b3c36025e49da85edd3105f43d4db2 *DESCRIPTION
+4646c7e5995fec91171f76463920bc8a *NAMESPACE
+bf061755f2baabd8750650138ff91b18 *R/class_covset.R
+023972a40e7fb5176798b004a41cb91f *R/dmutate.R
+feefe4ada82ac501206490241a8ddadc *R/utils.R
+511174b80a7dd345199d37b5c9228fd1 *README.md
+57f14e02f4012bdc26cce948508aba66 *man/covset.Rd
+982b29735cc32095c09b261140a409ae *man/mutate_random.Rd
+2ec53eab51ea55fba2880eadea1e0114 *man/rbinomial.Rd
+b2e3d8f4e3841e71f0d121eea5eccb35 *man/rmvnorm.Rd
