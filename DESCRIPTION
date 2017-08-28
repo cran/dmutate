@@ -1,9 +1,10 @@
 Package: dmutate
 Type: Package
 Title: Mutate Data Frames with Random Variates
-Version: 0.1.1
-Imports: dplyr (>= 0.5.0)
+Version: 0.1.2
+Imports: dplyr (>= 0.5.0), MASS
 Depends: methods
+Suggests: testthat
 Authors@R: c(
     person("Kyle T", "Baron", "", "kyleb@metrumrg.com", c("aut", "cre", "cph"))
     )
@@ -15,9 +16,9 @@ URL: https://github.com/kylebmetrum/dmutate
 BugReports: https://github.com/kylebmetrum/dmutate/issues
 License: GPL (>= 2)
 LazyData: TRUE
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 NeedsCompilation: no
-Packaged: 2017-01-24 19:54:08 UTC; kyleb
+Packaged: 2017-08-28 15:16:10 UTC; kyleb
 Author: Kyle T Baron [aut, cre, cph]
 Repository: CRAN
-Date/Publication: 2017-01-25 09:02:48
+Date/Publication: 2017-08-28 16:26:53 UTC

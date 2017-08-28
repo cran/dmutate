@@ -8,9 +8,6 @@ setClass("covset")
 ##' @param envir environment for object lookup
 ##' @param ... additional inputs
 ##'
-##' @importFrom dplyr left_join bind_cols data_frame select_ mutate_ ungroup group_by_
-##' @importFrom stats rbinom rnorm setNames
-##' @import methods
 ##' @examples
 ##'
 ##' data <- data.frame(ID=1:10, GROUP = sample(c(1,2,3),10,replace=TRUE))
@@ -25,19 +22,23 @@ setClass("covset")
 ##' mutate_random(data,egfr,envir=e)
 ##'
 ##' @export
-setGeneric("mutate_random", function(data,input,...) standardGeneric("mutate_random"))
+setGeneric("mutate_random", function(data,input,...) {
+  standardGeneric("mutate_random")
+})
 
 ##' @export
 ##' @rdname mutate_random
 ##'
-setMethod("mutate_random", c("data.frame","formula"), function(data,input,...) {
+setMethod("mutate_random", c("data.frame","formula"),
+          function(data,input,...) {
   x <- new_covobj(input,envir=environment(input))
   do_mutate(data,x=x,...)
 })
 
 ##' @export
 ##' @rdname mutate_random
-setMethod("mutate_random", c("data.frame", "character"), function(data,input,envir=parent.frame(),...) {
+setMethod("mutate_random", c("data.frame", "character"),
+          function(data,input,envir=parent.frame(),...) {
   input <- new_covobj(input,envir=envir)
   args <- input$args
   input$args <- NULL
@@ -47,29 +48,35 @@ setMethod("mutate_random", c("data.frame", "character"), function(data,input,env
 
 ##' @export
 ##' @rdname mutate_random
-setMethod("mutate_random", c("data.frame", "list"), function(data,input,...) {
+setMethod("mutate_random", c("data.frame", "list"),
+          function(data,input,...) {
   apply_covset(data,input,...)
 })
 
 ##' @export
 ##' @rdname mutate_random
-setMethod("mutate_random", c("data.frame", "covset"), function(data,input,...) {
+setMethod("mutate_random", c("data.frame", "covset"),
+          function(data,input,...) {
   apply_covset(data,input,...)
 })
 
 ##' @export
 ##' @rdname mutate_random
-setMethod("mutate_random", c("data.frame", "covobj"), function(data,input,envir=parent.frame(),...) {
+setMethod("mutate_random", c("data.frame", "covobj"),
+          function(data,input,envir=parent.frame(),...) {
   do_mutate(data,input,envir=envir,...)
 })
 
 parse_left_var <- function(x) {
-  m <- regexec("(\\w+)(\\[(\\w+)?\\,(\\w+)?\\])?", x)
+  m <- regexec("^([\\w.]+)(\\[(\\S+)?\\,(\\S+)?\\])?", x,perl=TRUE)
   m <- unlist(regmatches(x,m))
-  var <- m[2]
+  if(length(m)==0) {
+    stop("invalid variable name on left hand side",call.=FALSE)
+  }
+  var    <- m[2]
   bounds <- m[3]
-  lower <- m[4]
-  upper <- m[5]
+  lower  <- m[4]
+  upper  <- m[5]
   if(lower=="") lower <- "-Inf"
   if(upper=="") upper <- "Inf"
   return(list(var=var,lower=lower,upper=upper))
@@ -101,7 +108,8 @@ bound <- function(call,n,envir=list(),mult=1.3,mn=-Inf,mx=Inf,tries=10) {
     if(ngot >= n) break
   }
   if(ngot < n) {
-    stop("Could not simulate required variates within given bounds in ", tries, " tries", call.=FALSE)
+    stop("Could not simulate required variates within given bounds in ",
+         tries, " tries", call.=FALSE)
   }
   return(y[1:n])
 }
@@ -130,6 +138,9 @@ rbinomial <- function(n,p,...) rbinom(n,1,p)
 ##'
 ##' @details \code{rlmvnorm} is a multivariate log normal.
 ##'
+##' \code{rmassnorm} and \code{rlmassnorm} simulate the
+##' multivariate normal using the \code{MASS} package.
+##'
 ##' @return Returns a matrix of variates with number of rows
 ##' equal to \code{n} and mumber of columns equal to length of \code{mu}.
 ##'
@@ -152,6 +163,16 @@ rmvnorm <- function(n, mu, Sigma) {
 ##' @param ... arguments passed to \code{rmvnorm}
 ##' @export
 rlmvnorm <- function(n,...) exp(rmvnorm(n,...))
+
+##' @rdname rmvnorm
+##' @export
+rmassnorm <- function(n,...) MASS::mvrnorm(n,...)
+
+##' @rdname rmvnorm
+##' @export
+rlmassnorm <- function(n,...) exp(MASS::mvrnorm(n,...))
+
+empty_covobj <- function() {}
 
 first_comma <- function(x,start=1) {
   open <- 0
@@ -181,7 +202,7 @@ parse_form_3 <- function(x,envir) {
   til <- where_first("~",x)
   bar <- where_first("|",x)
   left <- substr(x,0,til-1)
-
+  if(left=="") stop("variable name on left hand side not found",call.=FALSE)
 
   if(bar > 0) {
     right <- substr(x,til+1,bar-1)
@@ -192,6 +213,7 @@ parse_form_3 <- function(x,envir) {
   }
 
   op <- where_first("(",right)
+
   dist <- substr(right,0,op-1)
 
   if(substr(dist,0,1)=="r") {
@@ -216,6 +238,8 @@ do_mutate <- function(data,x,envir=parent.frame(),tries=10,mult=1.5,...) {
 
   data <- ungroup(data)
 
+  if(x$vars[1]=="NULL") return(data)
+
   if(missing(envir)) {
     envir <- x$envir
   }
@@ -231,7 +255,7 @@ do_mutate <- function(data,x,envir=parent.frame(),tries=10,mult=1.5,...) {
     return(data)
   }
 
-  if(tries <=0) stop("tries must be >= 1")
+  if(tries <= 0) stop("tries must be >= 1")
 
   x$by <- c(x$by,x$opts$by)
   x$by <- x$by[x$by != ""]
@@ -248,13 +272,13 @@ do_mutate <- function(data,x,envir=parent.frame(),tries=10,mult=1.5,...) {
   mn <- eval(x$lower,envir=envir)
   mx <- eval(x$upper,envir=envir)
 
-  if(x$dist %in% c("rmvnorm", "rlmvnorm")) {
+  if(x$dist %in% c("rmvnorm", "rlmvnorm", "rmassnorm", "rlmassnorm")) {
     r <- mvrnorm_bound(x$call,n=n,mn=mn,mx=mx,tries=tries,envir=envir)
   } else {
     r <- data_frame(.x=bound(x$call,n=n,mn=mn, mx=mx,tries=tries,envir=envir))
   }
   names(r) <- x$vars
-  data <- select_(data,.dots=setdiff(names(data),names(r)))
+  data <- data[,setdiff(names(data),names(r)),drop=FALSE]
   if(has.by) {
     r <- bind_cols(skele,r)
     return(left_join(data,r,by=x$by))
@@ -277,12 +301,19 @@ do_mutate <- function(data,x,envir=parent.frame(),tries=10,mult=1.5,...) {
 ##'
 ##' as.list(set)
 ##'
+##' @details
+##' \code{rvset} is an alias for \code{covset}.
+##'
 ##' @export
 covset <- function(...,envir=parent.frame()) {
   x <- list(...)
   x <- lapply(x,new_covobj,envir=envir)
   return(structure(x,class="covset"))
 }
+
+##' @rdname covset
+##' @export
+rvset <- function(...) covset(...)
 
 is.covset <- function(x) return(inherits(x,"covset"))
 
@@ -320,6 +351,7 @@ mvrnorm_bound <- function(call,n,envir=list(),mult=1.3,
   envir$.n <- ceiling(n*mult)
 
   if(all(mn==-Inf) & all(mx==Inf)) {
+    envir$.n <- n
     return(as.data.frame(eval(call,envir=envir)))
   }
 
